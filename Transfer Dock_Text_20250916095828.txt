@@ -1,1 +1,501 @@
-https://claude.ai/public/artifacts/d34863f3-2c50-4e69-b16f-08a1ba1ac7dd
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cryogenic Pump 3D Simulation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #0f1419 0%, #1a2332 100%);
+            overflow: hidden;
+            color: white;
+        }
+        
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(0, 20, 40, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid rgba(64, 224, 255, 0.3);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            max-width: 300px;
+        }
+        
+        #info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            background: rgba(0, 20, 40, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid rgba(64, 224, 255, 0.3);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            max-width: 350px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #64dfff;
+            font-weight: bold;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #0066cc, #40e0ff);
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(64, 224, 255, 0.4);
+        }
+        
+        button.active {
+            background: linear-gradient(45deg, #ff6b35, #f7931e);
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            margin: 5px 0;
+        }
+        
+        h2 {
+            color: #64dfff;
+            margin-bottom: 10px;
+            border-bottom: 2px solid rgba(64, 224, 255, 0.3);
+            padding-bottom: 5px;
+        }
+        
+        h3 {
+            color: #40e0ff;
+            margin: 15px 0 8px 0;
+        }
+        
+        .component-detail {
+            background: rgba(100, 223, 255, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 3px solid #40e0ff;
+        }
+        
+        .temperature-display {
+            background: linear-gradient(45deg, #1a237e, #3949ab);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 10px 0;
+            border: 1px solid rgba(57, 73, 171, 0.5);
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-active { background-color: #4caf50; }
+        .status-inactive { background-color: #f44336; }
+        
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 200;
+            background: rgba(0, 20, 40, 0.9);
+            padding: 30px;
+            border-radius: 15px;
+            border: 1px solid rgba(64, 224, 255, 0.3);
+        }
+        
+        .loader {
+            border: 3px solid rgba(64, 224, 255, 0.3);
+            border-top: 3px solid #40e0ff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: #40e0ff;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="loading">
+            <div class="loader"></div>
+            <div>Loading Cryogenic Pump Simulation...</div>
+        </div>
+        
+        <div id="controls" style="display: none;">
+            <h2>🧊 Cryogenic Pump Controls</h2>
+            
+            <div class="control-group">
+                <label>Pump Operation</label>
+                <button id="startPump" onclick="togglePump()">Start Pump</button>
+                <button id="emergencyStop" onclick="emergencyStop()">Emergency Stop</button>
+            </div>
+            
+            <div class="control-group">
+                <label>Cooling System</label>
+                <button id="coolingBtn" onclick="toggleCooling()">Enable Cooling</button>
+            </div>
+            
+            <div class="control-group">
+                <label>Pump Speed: <span id="speedValue">50</span>%</label>
+                <input type="range" id="speedControl" min="0" max="100" value="50" oninput="updateSpeed(this.value)">
+            </div>
+            
+            <div class="control-group">
+                <label>View Controls</label>
+                <button onclick="resetView()">Reset View</button>
+                <button onclick="toggleWireframe()">Wireframe Mode</button>
+            </div>
+            
+            <div class="temperature-display">
+                <strong>Current Temperature</strong><br>
+                <span id="temperature">295 K (-78°C)</span>
+            </div>
+        </div>
+        
+        <div id="info" style="display: none;">
+            <h2>🔬 Cryogenic Pump Information</h2>
+            
+            <div class="component-detail">
+                <h3>📍 Currently Selected: <span id="selectedComponent">None</span></h3>
+                <p id="componentDescription">Click on any component to learn about it!</p>
+            </div>
+            
+            <h3>System Status</h3>
+            <div>
+                <span class="status-indicator status-inactive" id="pumpStatus"></span>Pump: <span id="pumpStatusText">Stopped</span>
+            </div>
+            <div>
+                <span class="status-indicator status-inactive" id="coolingStatus"></span>Cooling: <span id="coolingStatusText">Disabled</span>
+            </div>
+            
+            <h3>📚 What is a Cryogenic Pump?</h3>
+            <p>A cryogenic pump is a specialized vacuum pump that uses extremely low temperatures to condense and remove gases from a vacuum chamber. It operates by cooling surfaces to temperatures where gas molecules stick to them (cryosorption) or are trapped in solid form.</p>
+            
+            <h3>🔧 Key Components</h3>
+            <div class="component-detail">
+                <strong>Cold Head:</strong> The coldest part that directly removes gases by condensation and trapping.
+            </div>
+            
+            <div class="component-detail">
+                <strong>Radiation Shield:</strong> Protects the cold head from heat radiation, improving efficiency.
+            </div>
+            
+            <div class="component-detail">
+                <strong>Vacuum Chamber:</strong> The space being evacuated, connected to the pump.
+            </div>
+            
+            <div class="component-detail">
+                <strong>Compressor:</strong> Provides the cooling power through gas compression cycles.
+            </div>
+            
+            <div class="component-detail">
+                <strong>Heat Exchanger:</strong> Manages thermal energy transfer in the cooling system.
+            </div>
+            
+            <h3>❄️ Operating Principles</h3>
+            <p><strong>Cryosorption:</strong> Gas molecules stick to extremely cold surfaces</p>
+            <p><strong>Cryocondensation:</strong> Gases condense into liquid/solid form at low temperatures</p>
+            <p><strong>Cryotrapping:</strong> Molecules become trapped in the crystalline structure of condensed gases</p>
+        </div>
+    </div>
+
+    <script>
+        let scene, camera, renderer, controls;
+        let pumpGroup, coldHead, radiationShield, vacuumChamber, compressor, heatExchanger;
+        let isRunning = false;
+        let coolingEnabled = false;
+        let pumpSpeed = 50;
+        let temperature = 295;
+        let targetTemperature = 295;
+        let animationId;
+        let particles = [];
+        let wireframeMode = false;
+        
+        // Component information database
+        const componentInfo = {
+            coldHead: {
+                name: "Cold Head",
+                description: "The heart of the cryogenic pump. This component reaches extremely low temperatures (typically 10-20K) and directly captures gas molecules through cryosorption and cryocondensation. The cold surface causes gas molecules to lose kinetic energy and stick to the surface, effectively removing them from the vacuum chamber."
+            },
+            radiationShield: {
+                name: "Radiation Shield",
+                description: "A thermally insulating barrier that surrounds the cold head. It prevents heat radiation from warming the cold head, maintaining its low temperature and improving pump efficiency. Usually operates at an intermediate temperature (around 80K)."
+            },
+            vacuumChamber: {
+                name: "Vacuum Chamber",
+                description: "The chamber or system being evacuated. Gas molecules from this chamber travel to the cold head where they are captured. The pump creates and maintains high vacuum conditions in this space."
+            },
+            compressor: {
+                name: "Compressor Unit",
+                description: "Provides the cooling power for the system through a thermodynamic cycle (usually Gifford-McMahon or pulse tube). It compresses and expands helium gas to create the cooling effect that reaches the cold head."
+            },
+            heatExchanger: {
+                name: "Heat Exchanger",
+                description: "Transfers heat between different parts of the cooling system. It helps maintain thermal efficiency by pre-cooling incoming gas and warming outgoing gas, maximizing the cooling effect at the cold head."
+            }
+        };
+        
+        function init() {
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0f1a);
+            
+            // Camera setup
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(5, 5, 5);
+            camera.lookAt(0, 0, 0);
+            
+            // Renderer setup
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.getElementById('container').appendChild(renderer.domElement);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 5);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+            
+            // Create pump components
+            createPump();
+            
+            // Mouse controls
+            let isDragging = false;
+            let previousMousePosition = { x: 0, y: 0 };
+            
+            renderer.domElement.addEventListener('mousedown', onMouseDown);
+            renderer.domElement.addEventListener('mousemove', onMouseMove);
+            renderer.domElement.addEventListener('mouseup', onMouseUp);
+            renderer.domElement.addEventListener('wheel', onMouseWheel);
+            renderer.domElement.addEventListener('click', onMouseClick);
+            
+            // Start animation
+            animate();
+            
+            // Hide loading and show controls
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('controls').style.display = 'block';
+            document.getElementById('info').style.display = 'block';
+        }
+        
+        function createPump() {
+            pumpGroup = new THREE.Group();
+            
+            // Cold Head (bright blue cylinder)
+            const coldHeadGeometry = new THREE.CylinderGeometry(0.5, 0.5, 1, 16);
+            const coldHeadMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x40e0ff,
+                emissive: 0x0066cc,
+                emissiveIntensity: 0.1
+            });
+            coldHead = new THREE.Mesh(coldHeadGeometry, coldHeadMaterial);
+            coldHead.position.set(0, 0, 0);
+            coldHead.userData = { name: 'coldHead' };
+            pumpGroup.add(coldHead);
+            
+            // Radiation Shield (metallic cylinder around cold head)
+            const shieldGeometry = new THREE.CylinderGeometry(0.8, 0.8, 1.5, 16);
+            const shieldMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x888888,
+                transparent: true,
+                opacity: 0.7
+            });
+            radiationShield = new THREE.Mesh(shieldGeometry, shieldMaterial);
+            radiationShield.position.set(0, 0, 0);
+            radiationShield.userData = { name: 'radiationShield' };
+            pumpGroup.add(radiationShield);
+            
+            // Vacuum Chamber (large transparent sphere)
+            const chamberGeometry = new THREE.SphereGeometry(2, 16, 12);
+            const chamberMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x4444ff,
+                transparent: true,
+                opacity: 0.2,
+                side: THREE.DoubleSide
+            });
+            vacuumChamber = new THREE.Mesh(chamberGeometry, chamberMaterial);
+            vacuumChamber.position.set(0, 0, 0);
+            vacuumChamber.userData = { name: 'vacuumChamber' };
+            pumpGroup.add(vacuumChamber);
+            
+            // Compressor (rectangular box)
+            const compressorGeometry = new THREE.BoxGeometry(1.5, 1, 2);
+            const compressorMaterial = new THREE.MeshPhongMaterial({ color: 0xff6b35 });
+            compressor = new THREE.Mesh(compressorGeometry, compressorMaterial);
+            compressor.position.set(3, 0, 0);
+            compressor.userData = { name: 'compressor' };
+            pumpGroup.add(compressor);
+            
+            // Heat Exchanger (coiled structure)
+            const exchangerGroup = new THREE.Group();
+            for (let i = 0; i < 8; i++) {
+                const ringGeometry = new THREE.TorusGeometry(0.3, 0.05, 8, 16);
+                const ringMaterial = new THREE.MeshPhongMaterial({ color: 0x00ff88 });
+                const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+                ring.position.y = (i - 4) * 0.15;
+                ring.rotation.x = Math.PI / 2;
+                exchangerGroup.add(ring);
+            }
+            exchangerGroup.position.set(1.5, 0, 0);
+            exchangerGroup.userData = { name: 'heatExchanger' };
+            heatExchanger = exchangerGroup;
+            pumpGroup.add(heatExchanger);
+            
+            // Connecting pipes
+            const pipeGeometry = new THREE.CylinderGeometry(0.05, 0.05, 1.5, 8);
+            const pipeMaterial = new THREE.MeshPhongMaterial({ color: 0x666666 });
+            
+            const pipe1 = new THREE.Mesh(pipeGeometry, pipeMaterial);
+            pipe1.rotation.z = Math.PI / 2;
+            pipe1.position.set(0.75, 0.3, 0);
+            pumpGroup.add(pipe1);
+            
+            const pipe2 = new THREE.Mesh(pipeGeometry, pipeMaterial);
+            pipe2.rotation.z = Math.PI / 2;
+            pipe2.position.set(2.25, -0.3, 0);
+            pumpGroup.add(pipe2);
+            
+            scene.add(pumpGroup);
+        }
+        
+        function animate() {
+            animationId = requestAnimationFrame(animate);
+            
+            if (isRunning) {
+                // Rotate components to show operation
+                coldHead.rotation.y += 0.01 * (pumpSpeed / 50);
+                compressor.rotation.x += 0.02 * (pumpSpeed / 50);
+                heatExchanger.rotation.y += 0.015 * (pumpSpeed / 50);
+                
+                // Update temperature
+                if (coolingEnabled) {
+                    targetTemperature = Math.max(10, 295 - (pumpSpeed * 2.85));
+                } else {
+                    targetTemperature = 295;
+                }
+                
+                temperature += (targetTemperature - temperature) * 0.01;
+                updateTemperatureDisplay();
+                
+                // Create cooling particles
+                if (coolingEnabled && Math.random() < 0.1) {
+                    createParticle();
+                }
+                
+                // Update particle positions
+                updateParticles();
+                
+                // Cold head glow effect
+                const intensity = coolingEnabled ? 0.3 + Math.sin(Date.now() * 0.005) * 0.1 : 0.1;
+                coldHead.material.emissiveIntensity = intensity;
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        function createParticle() {
+            const particle = new THREE.Mesh(
+                new THREE.SphereGeometry(0.02, 4, 4),
+                new THREE.MeshBasicMaterial({ color: 0x40e0ff })
+            );
+            
+            // Start from vacuum chamber edge
+            const angle = Math.random() * Math.PI * 2;
+            const radius = 1.8;
+            particle.position.set(
+                Math.cos(angle) * radius,
+                (Math.random() - 0.5) * 2,
+                Math.sin(angle) * radius
+            );
+            
+            particle.userData = {
+                velocity: particle.position.clone().normalize().multiplyScalar(-0.05),
+                life: 100
+            };
+            
+            pumpGroup.add(particle);
+            particles.push(particle);
+        }
+        
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const particle = particles[i];
+                particle.position.add(particle.userData.velocity);
+                particle.userData.life--;
+                
+                // Remove particles that reached the cold head or expired
+                if (particle.position.length() < 0.6 || particle.userData.life <= 0) {
+                    pumpGroup.remove(particle);
+                    particles.splice(i, 1);
+                }
+            }
+        }
+        
+        function togglePump() {
+            isRunning = !isRunning;
+            const button = document.getElementById('startPump');
+            const statusIndicator = document.getElementById('pumpStatus');
+            const statusText = document.getElementById('pumpStatusText');
+            
+            if (isRunning) {
+                button.textContent = 'Stop Pump';
+                button.classList.add('active');
+                statusIndicator.classList.remo
